@@ -14,6 +14,7 @@ import java.io.Serializable;
 /**
  * 这里其实本质上就是一个类，叫做Result类，他有一些属性，比如说返回码/返回消息等
  * 不过这里和普通类不同的是我们这里定义了泛型，其中的一些方法可以返回各种类型的结果
+ * 泛型T取决于返回数据的类型，如果没有返回数据，那么T就是void
  */
 public class Result<T> implements Serializable {
 
@@ -23,7 +24,7 @@ public class Result<T> implements Serializable {
     /**
      * 正确返回码
      */
-    public static final String SUCCESS_CODE = "0";
+    public static final String SUCCESS_CODE = "200";
 
     /**
      * 返回码

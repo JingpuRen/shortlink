@@ -1,9 +1,14 @@
 package org.gopher.shortlink.admin.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
 
 import java.util.Date;
 
+/**
+ * 用户持久层实体
+ */
+@Data
 @TableName("t_user")
 public class UserDO {
     private Long	id;

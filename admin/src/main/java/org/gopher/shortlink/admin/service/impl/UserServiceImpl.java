@@ -12,9 +12,12 @@ import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
 import org.gopher.shortlink.admin.service.UserService;
 import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+
+import static org.gopher.shortlink.admin.common.constant.RedisCacheConstant.LOCK_USER_REGISTER_KEY;
 
 @Service
 @RequiredArgsConstructor
@@ -64,15 +67,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
             throw new ClientException("用户名已经存在");
         }
 
-        int inserted = baseMapper.insert(BeanUtil.toBean(userRegisterReqDTO, UserDO.class));
+        // 对要注册的用户名上锁！！！！
+        RLock lock = redissonClient.getLock(LOCK_USER_REGISTER_KEY + userRegisterReqDTO.getUsername());
 
-        if(inserted > 1){
-            throw new ClientException("用户新增失败");
+        try{
+            if(lock.tryLock()){
+                int inserted = baseMapper.insert(BeanUtil.toBean(userRegisterReqDTO, UserDO.class));
+                if(inserted > 1){
+                    throw new ClientException("用户新增失败");
+                }
+                // 到这里说明用户新增成功，加入到数据库后，我们将其加入到布隆过滤器中
+                userRegisterCachePenetrationBloomFilter.add(userRegisterReqDTO.getUsername());
+            }
+        }finally {
+            lock.unlock();
         }
-
-        // 到这里说明用户新增成功，加入到数据库后，我们将其加入到布隆过滤器中
-        userRegisterCachePenetrationBloomFilter.add(userRegisterReqDTO.getUsername());
     }
-
-
 }

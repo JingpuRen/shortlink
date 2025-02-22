@@ -12,6 +12,7 @@ import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
 import org.gopher.shortlink.admin.service.UserService;
 import org.redisson.api.RBloomFilter;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements UserService {
 
     private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
+
+    private final RedissonClient redissonClient;
 
     /**
      * 根据用户姓名查询用户信息

@@ -2,6 +2,7 @@ package org.gopher.shortlink.admin.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.gopher.shortlink.admin.dao.entity.UserDO;
+import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
 
 /**
@@ -21,4 +22,10 @@ public interface UserService extends IService<UserDO> {
      * @return 存在返回 true ; 不存在返回 false
      */
     Boolean hasUserName(String username);
+
+    /**
+     * 用户注册
+     * @param userRegisterReqDTO
+     */
+    void register(UserRegisterReqDTO userRegisterReqDTO);
 }

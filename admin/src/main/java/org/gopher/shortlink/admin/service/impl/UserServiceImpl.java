@@ -1,11 +1,14 @@
 package org.gopher.shortlink.admin.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.gopher.shortlink.admin.common.convention.exception.ClientException;
 import org.gopher.shortlink.admin.dao.entity.UserDO;
 import org.gopher.shortlink.admin.dao.mapper.UserMapper;
+import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
 import org.gopher.shortlink.admin.service.UserService;
 import org.redisson.api.RBloomFilter;
@@ -47,6 +50,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 //       UserDO userDO = baseMapper.selectOne(queryWrapper);
 
        return userRegisterCachePenetrationBloomFilter.contains(username);
+    }
+
+    /**
+     * 新增用户
+     * @param userRegisterReqDTO
+     */
+    public void register(UserRegisterReqDTO userRegisterReqDTO){
+        if(hasUserName(userRegisterReqDTO.getUsername())){
+            throw new ClientException("用户名已经存在");
+        }
+
+        int inserted = baseMapper.insert(BeanUtil.toBean(userRegisterReqDTO, UserDO.class));
+
+        if(inserted > 1){
+            throw new ClientException("用户新增失败");
+        }
+
+        // 到这里说明用户新增成功，加入到数据库后，我们将其加入到布隆过滤器中
+        userRegisterCachePenetrationBloomFilter.add(userRegisterReqDTO.getUsername());
     }
 
 

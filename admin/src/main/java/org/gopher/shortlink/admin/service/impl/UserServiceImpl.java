@@ -70,6 +70,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         // 对要注册的用户名上锁！！！！
         RLock lock = redissonClient.getLock(LOCK_USER_REGISTER_KEY + userRegisterReqDTO.getUsername());
 
+        // 通过分布式锁机制防止大量请求
         try{
             if(lock.tryLock()){
                 int inserted = baseMapper.insert(BeanUtil.toBean(userRegisterReqDTO, UserDO.class));
@@ -78,7 +79,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 }
                 // 到这里说明用户新增成功，加入到数据库后，我们将其加入到布隆过滤器中
                 userRegisterCachePenetrationBloomFilter.add(userRegisterReqDTO.getUsername());
+                return;
             }
+            // 如果没有获取到锁，说明锁已经被别人使用，那么这个名字就被别人注册掉了
+            throw new ClientException("用户名已被注册");
         }finally {
             lock.unlock();
         }

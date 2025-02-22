@@ -2,13 +2,17 @@ package org.gopher.shortlink.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.gopher.shortlink.admin.common.convention.exception.ClientException;
 import org.gopher.shortlink.admin.dao.entity.UserDO;
 import org.gopher.shortlink.admin.dao.mapper.UserMapper;
+import org.gopher.shortlink.admin.dto.req.UserLoginReqDTO;
 import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
+import org.gopher.shortlink.admin.dto.req.UserUpdateReqDTO;
+import org.gopher.shortlink.admin.dto.resp.UserLoginRespDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
 import org.gopher.shortlink.admin.service.UserService;
 import org.redisson.api.RBloomFilter;
@@ -86,5 +90,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         }finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * 更新用户信息
+     * @param userUpdateReqDTO
+     */
+    public void updateUser(UserUpdateReqDTO userUpdateReqDTO){
+        // todo 验证当前用户名是否是修改用户
+        LambdaUpdateWrapper<UserDO> lambdaUpdateWrapper = Wrappers.lambdaUpdate(UserDO.class)
+                .eq(UserDO::getUsername, userUpdateReqDTO.getUsername());
+        baseMapper.update(BeanUtil.toBean(userUpdateReqDTO,UserDO.class),lambdaUpdateWrapper);
+    }
+
+    /**
+     * 用户登录
+     * @param userLoginReqDTO
+     * @return
+     */
+    public UserLoginRespDTO login(UserLoginReqDTO userLoginReqDTO){
+
     }
 }

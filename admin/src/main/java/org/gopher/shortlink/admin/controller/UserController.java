@@ -3,7 +3,10 @@ package org.gopher.shortlink.admin.controller;
 import lombok.RequiredArgsConstructor;
 import org.gopher.shortlink.admin.common.convention.result.Result;
 import org.gopher.shortlink.admin.common.convention.result.Results;
+import org.gopher.shortlink.admin.dto.req.UserLoginReqDTO;
 import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
+import org.gopher.shortlink.admin.dto.req.UserUpdateReqDTO;
+import org.gopher.shortlink.admin.dto.resp.UserLoginRespDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
 import org.gopher.shortlink.admin.service.UserService;
 import org.springframework.web.bind.annotation.*;
@@ -53,5 +56,24 @@ public class UserController {
         return Results.success("用户新增成功");
     }
 
+    /**
+     * 更新用户信息
+     * @param userUpdateReqDTO
+     * @return
+     */
+    @PutMapping("/api/short-link/v1/user")
+    public Result<String> Update(@RequestBody UserUpdateReqDTO userUpdateReqDTO){
+        userService.updateUser(userUpdateReqDTO);
+        return Results.success("用户更新成功");
+    }
 
+    /**
+     * 用户登录
+     * @param userLoginReqDTO
+     * @return
+     */
+    @PostMapping("/api/short-link/v1/user/login")
+    public Result<UserLoginRespDTO> Login(@RequestBody UserLoginReqDTO userLoginReqDTO){
+        return Results.success(userService.login(userLoginReqDTO));
+    }
 }

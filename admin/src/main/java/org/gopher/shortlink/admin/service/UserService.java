@@ -2,7 +2,10 @@ package org.gopher.shortlink.admin.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.gopher.shortlink.admin.dao.entity.UserDO;
+import org.gopher.shortlink.admin.dto.req.UserLoginReqDTO;
 import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
+import org.gopher.shortlink.admin.dto.req.UserUpdateReqDTO;
+import org.gopher.shortlink.admin.dto.resp.UserLoginRespDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
 
 /**
@@ -28,4 +31,17 @@ public interface UserService extends IService<UserDO> {
      * @param userRegisterReqDTO
      */
     void register(UserRegisterReqDTO userRegisterReqDTO);
+
+    /**
+     * 更改用户信息
+     * @param userUpdateReqDTO
+     */
+    void updateUser(UserUpdateReqDTO userUpdateReqDTO);
+
+    /**
+     * 用户登录
+     * @param userLoginReqDTO
+     * @return
+     */
+    UserLoginRespDTO login(UserLoginReqDTO userLoginReqDTO);
 }

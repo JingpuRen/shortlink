@@ -76,4 +76,15 @@ public class UserController {
     public Result<UserLoginRespDTO> Login(@RequestBody UserLoginReqDTO userLoginReqDTO){
         return Results.success(userService.login(userLoginReqDTO));
     }
+
+    /**
+     * 检查用户是否登录
+     * @param username
+     * @param token
+     * @return
+     */
+    @PostMapping("/api/short-link/v1/user/check-login")
+    public Result<String> CheckLogin(@RequestParam("username") String username,@RequestParam("token") String token){
+        return Results.success(userService.checkLogin(username,token) ? "用户已登录" : "用户尚未登录");
+    }
 }

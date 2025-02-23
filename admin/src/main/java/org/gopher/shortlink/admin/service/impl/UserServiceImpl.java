@@ -1,7 +1,6 @@
 package org.gopher.shortlink.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -129,15 +128,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
             throw new ClientException("用户不存在");
         }
 
-        // 到此处说明登录用户是存在的
+        // 判断用户是否已经登录，防止用户重复登录
+        if(Boolean.TRUE.equals(stringRedisTemplate.hasKey("login:" + userLoginReqDTO.getUsername()))){
+            throw new ClientException("用户已经登录");
+        }
+
+        // 到此处说明登录用户是存在的并且还没有登陆过
         // 生成uuid作为token
         String token = UUID.randomUUID().toString();
-        // token作为key，查出来的用户信息作为字符串形式的value添加到redis中
-        stringRedisTemplate.opsForValue().set(token, JSON.toJSONString(userDO),30L, TimeUnit.DAYS);
 
+        /**
+         * 哈希存储
+         * key : login_:{username}
+         * hash:
+         *  key : "token"
+         *  value : token的值
+         */
+        stringRedisTemplate.opsForHash().put("login:" + userLoginReqDTO.getUsername(),"token",token);
+        stringRedisTemplate.expire("login:" + userLoginReqDTO.getUsername(),30L,TimeUnit.DAYS);
+
+        // 返回token
         UserLoginRespDTO userLoginRespDTO = new UserLoginRespDTO();
         userLoginRespDTO.setToken(token);
 
         return userLoginRespDTO;
+    }
+
+    /**
+     * 检查用户是否登录
+     * @param username
+     * @param token
+     * @return
+     */
+    public Boolean checkLogin(String username,String token){
+        return stringRedisTemplate.opsForHash().get("login:" + username,"token") != null;
     }
 }

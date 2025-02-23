@@ -1,6 +1,7 @@
 package org.gopher.shortlink.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -19,7 +20,11 @@ import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.gopher.shortlink.admin.common.constant.RedisCacheConstant.LOCK_USER_REGISTER_KEY;
 
@@ -27,9 +32,14 @@ import static org.gopher.shortlink.admin.common.constant.RedisCacheConstant.LOCK
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements UserService {
 
+    // 引入布隆过滤器
     private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
 
+    // 引入redisson客户端
     private final RedissonClient redissonClient;
+
+    // 引入redis
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 根据用户姓名查询用户信息
@@ -109,6 +119,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
      * @return
      */
     public UserLoginRespDTO login(UserLoginReqDTO userLoginReqDTO){
+        // 1. 判断登录用户是否存在
+        LambdaQueryWrapper<UserDO> userLoginReqLambdaQuery = Wrappers.lambdaQuery(UserDO.class)
+                .eq(UserDO::getUsername, userLoginReqDTO.getUsername())
+                .eq(UserDO::getPassword, userLoginReqDTO.getPassword())
+                .eq(UserDO::getDelFlag,0);
+        UserDO userDO = baseMapper.selectOne(userLoginReqLambdaQuery);
+        if(userDO == null){
+            throw new ClientException("用户不存在");
+        }
 
+        // 到此处说明登录用户是存在的
+        // 生成uuid作为token
+        String token = UUID.randomUUID().toString();
+        // token作为key，查出来的用户信息作为字符串形式的value添加到redis中
+        stringRedisTemplate.opsForValue().set(token, JSON.toJSONString(userDO),30L, TimeUnit.DAYS);
+
+        UserLoginRespDTO userLoginRespDTO = new UserLoginRespDTO();
+        userLoginRespDTO.setToken(token);
+
+        return userLoginRespDTO;
     }
 }

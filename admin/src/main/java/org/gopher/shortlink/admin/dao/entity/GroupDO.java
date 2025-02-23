@@ -1,7 +1,10 @@
 package org.gopher.shortlink.admin.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
@@ -10,14 +13,21 @@ import java.util.Date;
  */
 @Data
 @TableName("t_group")
+/**
+ * 实现链式创建对象
+ * 但要记得把无参和全餐注解都加上，这样我们就可以想初始化几个属性就初始化几个属性了
+ */
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class GroupDO{
 
     private static final long serialVersionUID = 1L;
 
-    @TableId(type = IdType.AUTO)
     /**
      * id
      */
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

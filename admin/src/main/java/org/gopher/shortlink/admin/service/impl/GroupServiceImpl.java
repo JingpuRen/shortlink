@@ -1,5 +1,6 @@
 package org.gopher.shortlink.admin.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -7,9 +8,12 @@ import groovy.util.logging.Slf4j;
 import org.gopher.shortlink.admin.common.convention.exception.ClientException;
 import org.gopher.shortlink.admin.dao.entity.GroupDO;
 import org.gopher.shortlink.admin.dao.mapper.GroupMapper;
+import org.gopher.shortlink.admin.dto.resp.ShortLinkGroupQueryRespDTO;
 import org.gopher.shortlink.admin.service.GroupService;
 import org.gopher.shortlink.admin.util.RandomCodeGenerator;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * 短链接分组接口实现层
@@ -43,6 +47,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         // 创建要插入的实体对象
         GroupDO groupDO = GroupDO.builder()
                 .gid(gid)
+                .sortOrder(0) // 默认敢不敢生成的分组排序是0
                 .name(name)
                 .build();
 
@@ -59,7 +64,25 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         LambdaQueryWrapper<GroupDO> groupDOLambdaQueryWrapper = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getGid, gid)
                 // todo 获取当前线程的用户
-                .eq(GroupDO::getUsername, null);
+                .isNull(GroupDO::getUsername);
         return baseMapper.selectOne(groupDOLambdaQueryWrapper) != null;
+    }
+
+    /**
+     * 查询当前用户用户下的短链接分组，其实是有参数的，参数就是隐形的用户
+     */
+    public List<ShortLinkGroupQueryRespDTO> queryGroup(){
+        LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
+                .eq(GroupDO::getDelFlag,0)
+                .isNull(GroupDO::getUsername)
+                .orderByDesc(GroupDO::getSortOrder,GroupDO::getUpdateTime);
+
+        List<GroupDO> selectedList = baseMapper.selectList(queryWrapper);
+
+        List<ShortLinkGroupQueryRespDTO> resultList = selectedList.stream()
+                .map(each -> BeanUtil.toBean(each, ShortLinkGroupQueryRespDTO.class))
+                .toList();
+
+        return resultList;
     }
 }

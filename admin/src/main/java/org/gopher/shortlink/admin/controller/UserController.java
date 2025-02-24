@@ -25,7 +25,7 @@ public class UserController {
     /**
      * 根据用户姓名查询用户信息
      */
-    @PostMapping("/api/short-link/v1/user/{username}")
+    @PostMapping("/api/short-link/admin/v1/user/{username}")
     // 返回的虽然是Result，但是SpringBoot框架会默认将返回的结果序列化成JSON格式
     public Result<UserRespDTO> getUserByUsername(@PathVariable("username") String username){
         UserRespDTO userRespDTO = userService.getUserByUsername(username);
@@ -36,7 +36,7 @@ public class UserController {
      * 查询用户姓名是否存在
      * @return 存在返回 true ; 不存在返回 false
      */
-    @GetMapping("/api/short-link/v1/user/has-username")
+    @GetMapping("/api/short-link/admin/v1/user/has-username")
     public Result<String> hasUsername(@RequestParam("username") String username){
         return Results.success(userService.hasUserName(username) ? "用户姓名已经存在" : "用户姓名尚未存在");
     }
@@ -44,7 +44,7 @@ public class UserController {
     /**
      * 新增用户
      */
-    @PostMapping("/api/short-link/v1/user")
+    @PostMapping("/api/short-link/admin/v1/user")
     public Result<String> Register(@RequestBody UserRegisterReqDTO userRegisterReqDTO){
         // 如果插入失败，那么在其逻辑方法中就会自动返回
         userService.register(userRegisterReqDTO);
@@ -55,7 +55,7 @@ public class UserController {
     /**
      * 更新用户信息
      */
-    @PutMapping("/api/short-link/v1/user")
+    @PutMapping("/api/short-link/admin/v1/user")
     public Result<String> Update(@RequestBody UserUpdateReqDTO userUpdateReqDTO){
         userService.updateUser(userUpdateReqDTO);
         return Results.success("用户更新成功");
@@ -64,7 +64,7 @@ public class UserController {
     /**
      * 用户登录
      */
-    @PostMapping("/api/short-link/v1/user/login")
+    @PostMapping("/api/short-link/admin/v1/user/login")
     public Result<UserLoginRespDTO> Login(@RequestBody UserLoginReqDTO userLoginReqDTO){
         return Results.success(userService.login(userLoginReqDTO));
     }
@@ -72,7 +72,7 @@ public class UserController {
     /**
      * 检查用户是否登录
      */
-    @PostMapping("/api/short-link/v1/user/check-login")
+    @PostMapping("/api/short-link/admin/v1/user/check-login")
     public Result<String> CheckLogin(@RequestParam("username") String username,@RequestParam("token") String token){
         return Results.success(userService.checkLogin(username,token) ? "用户已登录" : "用户尚未登录");
     }

@@ -76,6 +76,8 @@ public class ShortLinkDO {
     /**
      * 描述
      */
+    // 如果和MySQL中的关键字出现冲突，那么我们就可以这样子做！
+    @TableField("`describe`")
     private String describe;
 
     /**

@@ -27,6 +27,9 @@ public class GroupController {
         return Results.success("短链接分组 : " + shortLinkGroupCreateReqDTO.getName() + "，创建成功");
     }
 
+    /**
+     * 查询当前用户的短链接分组
+     */
     @GetMapping("/api/short-link/v1/group")
     public Result<List<ShortLinkGroupQueryRespDTO>> QueryGroup(){
         return Results.success(groupService.queryGroup());

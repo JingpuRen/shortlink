@@ -2,6 +2,7 @@ package org.gopher.shortlink.admin.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.gopher.shortlink.admin.dao.entity.GroupDO;
+import org.gopher.shortlink.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import org.gopher.shortlink.admin.dto.resp.ShortLinkGroupQueryRespDTO;
 
 import java.util.List;
@@ -19,4 +20,14 @@ public interface GroupService extends IService<GroupDO> {
      * 查询短链接分组
      */
     List<ShortLinkGroupQueryRespDTO> queryGroup();
+
+    /**
+     * 修改短链接分组名称
+     */
+    void updateGroup(ShortLinkGroupUpdateReqDTO shortLinkGroupUpdateReqDTO);
+
+    /**
+     * 删除短链接分组
+     */
+    void deleteGroup(String gid);
 }

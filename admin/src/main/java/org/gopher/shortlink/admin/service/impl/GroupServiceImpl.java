@@ -9,6 +9,7 @@ import org.gopher.shortlink.admin.common.convention.exception.ClientException;
 import org.gopher.shortlink.admin.context.UserContext;
 import org.gopher.shortlink.admin.dao.entity.GroupDO;
 import org.gopher.shortlink.admin.dao.mapper.GroupMapper;
+import org.gopher.shortlink.admin.dto.req.ShortLinkGroupUpdateReqDTO;
 import org.gopher.shortlink.admin.dto.resp.ShortLinkGroupQueryRespDTO;
 import org.gopher.shortlink.admin.service.GroupService;
 import org.gopher.shortlink.admin.util.RandomCodeGenerator;
@@ -25,6 +26,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
     /**
      * 创建新的短链接分组
      */
+    @Override
     public void createNewGroup(String name){
         // 判断当前的groupName是否已经创建过
         LambdaQueryWrapper<GroupDO> groupDOLambdaQueryWrapper = Wrappers.lambdaQuery(GroupDO.class)
@@ -73,6 +75,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
     /**
      * 查询当前用户用户下的短链接分组，其实是有参数的，参数就是隐形的用户
      */
+    @Override
     public List<ShortLinkGroupQueryRespDTO> queryGroup(){
         LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getDelFlag,0)
@@ -87,5 +90,36 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 .toList();
 
         return resultList;
+    }
+
+    /**
+     * 修改短链接分组名称
+     */
+    @Override
+    public void updateGroup(ShortLinkGroupUpdateReqDTO shortLinkGroupUpdateReqDTO) {
+        LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
+                .eq(GroupDO::getDelFlag, 0)
+                .eq(GroupDO::getUsername, UserContext.getUsername())
+                .eq(GroupDO::getGid, shortLinkGroupUpdateReqDTO.getGid());
+        GroupDO groupDO = GroupDO.builder().name(shortLinkGroupUpdateReqDTO.getName()).build();
+        baseMapper.update(groupDO,queryWrapper);
+    }
+
+    /**
+     * 删除短链接分组
+     */
+    @Override
+    public void deleteGroup(String gid){
+        // 删除一般都是软删除，因此我们一般是用update去做
+        LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
+                .eq(GroupDO::getDelFlag, 0)
+                .eq(GroupDO::getUsername, UserContext.getUsername())
+                .eq(GroupDO::getGid, gid);
+
+        // tip update的步骤是先创建好条件查询器wrapper，创建一个新的实体，在实体中将要修改的字段进行赋值
+        // tip 然后我们再调用basemapper.update就可以了
+        GroupDO groupDO = GroupDO.builder()
+                .delFlag(1).build();
+        baseMapper.update(groupDO,queryWrapper);
     }
 }

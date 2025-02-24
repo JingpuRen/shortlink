@@ -2,16 +2,23 @@ package org.gopher.shortlink.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
+import org.gopher.shortlink.project.common.convention.exception.ServiceException;
 import org.gopher.shortlink.project.dao.entity.ShortLinkDO;
 import org.gopher.shortlink.project.dao.mapper.ShortLinkMapper;
 import org.gopher.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import org.gopher.shortlink.project.service.ShortLinkService;
 import org.gopher.shortlink.project.util.HashUtil;
+import org.redisson.api.RBloomFilter;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO>implements ShortLinkService {
+
+    private final RBloomFilter<String> shortUriCreateCachePenetrationBloomFilter;
 
     /**
      * 创建短链接
@@ -20,14 +27,23 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO shortLinkCreateReqDTO) {
         // 复制对象属性
         ShortLinkDO shortLinkDO = BeanUtil.toBean(shortLinkCreateReqDTO, ShortLinkDO.class);
-        // 生成全部的短链接 ： 域名 + / + 后缀
-        String suffix = generateSuffix(shortLinkCreateReqDTO);
-        shortLinkDO.setShortUri(suffix);
+        // 生成短链接
+        String shortUri = generateSuffix(shortLinkCreateReqDTO);
+        shortLinkDO.setShortUri(shortUri);
         shortLinkDO.setEnableStatus(0);
-        shortLinkDO.setFullShortUrl(shortLinkCreateReqDTO.getDomain() + "/" + suffix);
+        // tip 生成完整的短链接 ： 域名 + / + 后缀
+        shortLinkDO.setFullShortUrl(shortLinkCreateReqDTO.getDomain() + "/" + shortUri);
         // 插入新生成的短链接
-        baseMapper.insert(shortLinkDO);
-
+        try{
+            baseMapper.insert(shortLinkDO);
+        }catch (DuplicateKeyException ex){
+            // tip 这里主要是对布隆过滤器的误判进行预防，因为如果误判的话，但由于我们有唯一索引，因此数据库会报错的！！
+            log.warn("ShortLinkServiceImpl\\createShortLink failed");
+            throw new ServiceException("短链接生成重复");
+        }
+        // 将新的短链接后缀加入到布隆过滤器中
+        shortUriCreateCachePenetrationBloomFilter.add(shortUri);
+        // 返回结果
         return BeanUtil.toBean(shortLinkDO, ShortLinkCreateRespDTO.class);
     }
 
@@ -35,7 +51,25 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      * 生成短链接后缀
      */
     public String generateSuffix(ShortLinkCreateReqDTO shortLinkCreateReqDTO){
-        return HashUtil.hashToBase62(shortLinkCreateReqDTO.getOriginUrl());
+        int maxCustomGenerateCount = 0;
+        String shortUri;
+        while(true){
+            // 失败重试的最大次数
+            if(maxCustomGenerateCount > 10){
+                throw new ServiceException("短链接生成频繁，请稍后重试！！！");
+            }
+            // 生成短链接后缀，加上当前的毫秒数，可以防止每次都生成一样的！！
+            shortUri = HashUtil.hashToBase62(shortLinkCreateReqDTO.getOriginUrl() + System.currentTimeMillis());
+            // 检测短链接后缀是否重复生成
+            if(!shortUriCreateCachePenetrationBloomFilter.contains(shortUri)){
+                // 如果没有重复生成，那么直接break
+                break;
+            }
+            // 如果重复生成的话，那么我们就重试，并将重试次数加加
+            maxCustomGenerateCount++;
+        }
+        // 返回合格的短链接后缀
+        return shortUri;
     }
 
 }

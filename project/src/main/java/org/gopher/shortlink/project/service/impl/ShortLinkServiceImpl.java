@@ -1,13 +1,18 @@
 package org.gopher.shortlink.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.gopher.shortlink.project.common.convention.exception.ServiceException;
 import org.gopher.shortlink.project.dao.entity.ShortLinkDO;
 import org.gopher.shortlink.project.dao.mapper.ShortLinkMapper;
 import org.gopher.shortlink.project.dto.req.ShortLinkCreateReqDTO;
+import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
+import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import org.gopher.shortlink.project.service.ShortLinkService;
 import org.gopher.shortlink.project.util.HashUtil;
 import org.redisson.api.RBloomFilter;
@@ -70,6 +75,20 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         // 返回合格的短链接后缀
         return shortUri;
+    }
+
+    /**
+     * 短链接分页展示功能
+     */
+    @Override
+    public IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO shortLinkPageReqDTO) {
+        LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .eq(ShortLinkDO::getGid, shortLinkPageReqDTO.getGid())
+                .eq(ShortLinkDO::getEnableStatus, 0);
+        // tip 这里的参数传递不太懂，课下多看下mp的分页插件
+        IPage<ShortLinkDO> resultPage = baseMapper.selectPage(shortLinkPageReqDTO, queryWrapper);
+        return resultPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
     }
 
 }

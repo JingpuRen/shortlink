@@ -2,6 +2,9 @@ package org.gopher.shortlink.project.dto.resp;
 
 import lombok.Data;
 
+/**
+ * 短链接创建返回参数
+ */
 @Data
 public class ShortLinkCreateRespDTO {
     /**

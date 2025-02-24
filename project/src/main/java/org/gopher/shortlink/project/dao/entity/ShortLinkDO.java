@@ -74,6 +74,11 @@ public class ShortLinkDO {
     private Date validDate;
 
     /**
+     * 网站图标URL
+     */
+    private String favicon;
+
+    /**
      * 描述
      */
     // 如果和MySQL中的关键字出现冲突，那么我们就可以这样子做！

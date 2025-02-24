@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import groovy.util.logging.Slf4j;
 import org.gopher.shortlink.admin.common.convention.exception.ClientException;
+import org.gopher.shortlink.admin.context.UserContext;
 import org.gopher.shortlink.admin.dao.entity.GroupDO;
 import org.gopher.shortlink.admin.dao.mapper.GroupMapper;
 import org.gopher.shortlink.admin.dto.resp.ShortLinkGroupQueryRespDTO;
@@ -28,8 +29,8 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         // 判断当前的groupName是否已经创建过
         LambdaQueryWrapper<GroupDO> groupDOLambdaQueryWrapper = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getDelFlag, 0)
-                // todo 这里必须是查当前用户下的，不同的用户是可以创建相同的分组名称的
-                .isNull(GroupDO::getUsername)
+                // todo 从当前线程获取用户的信息
+                .eq(GroupDO::getUsername, UserContext.getUsername())
                 .eq(GroupDO::getName, name);
 
         GroupDO groupDO1 = baseMapper.selectOne(groupDOLambdaQueryWrapper);
@@ -49,6 +50,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 .gid(gid)
                 .sortOrder(0) // 默认敢不敢生成的分组排序是0
                 .name(name)
+                .username(UserContext.getUsername())
                 .build();
 
         // 插入新的短链接分组对象
@@ -64,7 +66,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
         LambdaQueryWrapper<GroupDO> groupDOLambdaQueryWrapper = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getGid, gid)
                 // todo 获取当前线程的用户
-                .isNull(GroupDO::getUsername);
+                .eq(GroupDO::getUsername,UserContext.getUsername());
         return baseMapper.selectOne(groupDOLambdaQueryWrapper) != null;
     }
 
@@ -74,7 +76,8 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
     public List<ShortLinkGroupQueryRespDTO> queryGroup(){
         LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
                 .eq(GroupDO::getDelFlag,0)
-                .isNull(GroupDO::getUsername)
+                // todo 获取当前线程下的用户
+                .eq(GroupDO::getUsername,UserContext.getUsername())
                 .orderByDesc(GroupDO::getSortOrder,GroupDO::getUpdateTime);
 
         List<GroupDO> selectedList = baseMapper.selectList(queryWrapper);

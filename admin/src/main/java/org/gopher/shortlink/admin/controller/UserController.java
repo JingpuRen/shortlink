@@ -24,8 +24,6 @@ public class UserController {
 
     /**
      * 根据用户姓名查询用户信息
-     * @param username
-     * @return
      */
     @PostMapping("/api/short-link/v1/user/{username}")
     // 返回的虽然是Result，但是SpringBoot框架会默认将返回的结果序列化成JSON格式
@@ -39,14 +37,12 @@ public class UserController {
      * @return 存在返回 true ; 不存在返回 false
      */
     @GetMapping("/api/short-link/v1/user/has-username")
-    public Result<Boolean> hasUsername(@RequestParam("username") String username){
-        return Results.success(userService.hasUserName(username));
+    public Result<String> hasUsername(@RequestParam("username") String username){
+        return Results.success(userService.hasUserName(username) ? "用户姓名已经存在" : "用户姓名尚未存在");
     }
 
     /**
      * 新增用户
-     * @param userRegisterReqDTO
-     * @return
      */
     @PostMapping("/api/short-link/v1/user")
     public Result<String> Register(@RequestBody UserRegisterReqDTO userRegisterReqDTO){
@@ -58,8 +54,6 @@ public class UserController {
 
     /**
      * 更新用户信息
-     * @param userUpdateReqDTO
-     * @return
      */
     @PutMapping("/api/short-link/v1/user")
     public Result<String> Update(@RequestBody UserUpdateReqDTO userUpdateReqDTO){
@@ -69,8 +63,6 @@ public class UserController {
 
     /**
      * 用户登录
-     * @param userLoginReqDTO
-     * @return
      */
     @PostMapping("/api/short-link/v1/user/login")
     public Result<UserLoginRespDTO> Login(@RequestBody UserLoginReqDTO userLoginReqDTO){
@@ -79,9 +71,6 @@ public class UserController {
 
     /**
      * 检查用户是否登录
-     * @param username
-     * @param token
-     * @return
      */
     @PostMapping("/api/short-link/v1/user/check-login")
     public Result<String> CheckLogin(@RequestParam("username") String username,@RequestParam("token") String token){

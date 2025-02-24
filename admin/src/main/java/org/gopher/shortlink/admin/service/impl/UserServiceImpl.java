@@ -1,6 +1,7 @@
 package org.gopher.shortlink.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -42,8 +43,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     /**
      * 根据用户姓名查询用户信息
-     * @param username
-     * @return
      */
     @Override
     public UserRespDTO getUserByUsername(String username) {
@@ -59,8 +58,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     /**
      * 查询用户姓名是否存在
-     * @param username
-     * @return
      */
     @Override
     public Boolean hasUserName(String username) {
@@ -73,7 +70,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     /**
      * 新增用户
-     * @param userRegisterReqDTO
      */
     public void register(UserRegisterReqDTO userRegisterReqDTO){
         if(hasUserName(userRegisterReqDTO.getUsername())){
@@ -103,7 +99,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     /**
      * 更新用户信息
-     * @param userUpdateReqDTO
      */
     public void updateUser(UserUpdateReqDTO userUpdateReqDTO){
         // todo 验证当前用户名是否是修改用户
@@ -114,8 +109,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     /**
      * 用户登录
-     * @param userLoginReqDTO
-     * @return
      */
     public UserLoginRespDTO login(UserLoginReqDTO userLoginReqDTO){
         // 1. 判断登录用户是否存在
@@ -141,10 +134,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
          * 哈希存储
          * key : login_:{username}
          * hash:
-         *  key : "token"
-         *  value : token的值
+         *  key : token
+         *  value : JSON字符串格式的用户信息
          */
-        stringRedisTemplate.opsForHash().put("login:" + userLoginReqDTO.getUsername(),"token",token);
+        stringRedisTemplate.opsForHash().put("login:" + userLoginReqDTO.getUsername(),token, JSON.toJSONString(userDO));
         stringRedisTemplate.expire("login:" + userLoginReqDTO.getUsername(),30L,TimeUnit.DAYS);
 
         // 返回token
@@ -156,11 +149,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     /**
      * 检查用户是否登录
-     * @param username
-     * @param token
-     * @return
      */
     public Boolean checkLogin(String username,String token){
-        return stringRedisTemplate.opsForHash().get("login:" + username,"token") != null;
+        return stringRedisTemplate.opsForHash().get("login:" + username,token) != null;
     }
 }

@@ -40,9 +40,9 @@ public class ShortLinkController {
 
 
     /**
-     * 修改短链接分组中的内容
+     * 短链接信息修改
      */
-    @PutMapping("/api/short-link/project/v1/update")
+    @PostMapping("/api/short-link/project/v1/update")
     public Result<String> UpdateShortLinkInfo(@RequestBody ShortLinkUpdateReqDTO shortLinkUpdateReqDTO){
         shortLinkService.updateShortLinkInfo(shortLinkUpdateReqDTO);
         return Results.success("短链接信息修改成功");

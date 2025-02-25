@@ -1,4 +1,4 @@
-package org.gopher.shortlink.project.dto.req;
+package org.gopher.shortlink.admin.remote.dto.req;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;

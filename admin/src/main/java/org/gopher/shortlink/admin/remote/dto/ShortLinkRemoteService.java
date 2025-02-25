@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.gopher.shortlink.admin.common.convention.result.Result;
 import org.gopher.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
+import org.gopher.shortlink.admin.remote.dto.req.ShortLinkUpdateReqDTO;
 import org.gopher.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
 import org.gopher.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
 
@@ -40,5 +41,12 @@ public interface ShortLinkRemoteService {
 
         return JSON.parseObject(resultPageStr, new TypeReference<>() {
         });
+    }
+
+    /**
+     * 短链接信息修改
+     */
+    default void updateShortLinkInfo(ShortLinkUpdateReqDTO shortLinkUpdateReqDTO){
+        String post = HttpUtil.post("http://127.0.0.1:8001/api/short-link/project/v1/update", JSON.toJSONString(shortLinkUpdateReqDTO));
     }
 }

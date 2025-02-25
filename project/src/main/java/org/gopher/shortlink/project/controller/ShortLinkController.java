@@ -9,6 +9,7 @@ import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import org.gopher.shortlink.project.service.ShortLinkService;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,8 +35,8 @@ public class ShortLinkController {
     // tip : 使用mp的分页插件时，需要注意到的一点是我们还要传入current和size两个参数
     // tip : current是要展示的第几页，size是每页的数量
     // tip : 使用分页插件之前要记得引入对应的配置类，mp的分页插件是通过拦截器然后增强形成的！！
-    @PostMapping("/api/short-link/project/v1/page")
-    public Result<IPage<ShortLinkPageRespDTO>> PageShortLink(@RequestBody ShortLinkPageReqDTO shortLinkPageReqDTO){
+    @GetMapping("/api/short-link/project/v1/page")
+    public Result<IPage<ShortLinkPageRespDTO>> PageShortLink(ShortLinkPageReqDTO shortLinkPageReqDTO){
         return Results.success(shortLinkService.pageShortLink(shortLinkPageReqDTO));
     }
 

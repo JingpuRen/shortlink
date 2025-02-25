@@ -17,6 +17,13 @@ public interface GroupService extends IService<GroupDO> {
     void createNewGroup(String groupName);
 
     /**
+     * 创建新的短链接分组
+     * @param username 创建用户名
+     * @param name 分组名称
+     */
+    void createNewGroup(String username,String name);
+
+    /**
      * 查询短链接分组
      */
     List<ShortLinkGroupQueryRespDTO> queryGroup();

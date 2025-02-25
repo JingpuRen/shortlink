@@ -15,6 +15,7 @@ import org.gopher.shortlink.admin.dto.req.UserRegisterReqDTO;
 import org.gopher.shortlink.admin.dto.req.UserUpdateReqDTO;
 import org.gopher.shortlink.admin.dto.resp.UserLoginRespDTO;
 import org.gopher.shortlink.admin.dto.resp.UserRespDTO;
+import org.gopher.shortlink.admin.service.GroupService;
 import org.gopher.shortlink.admin.service.UserService;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
@@ -40,6 +41,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
 
     // 引入redis
     private final StringRedisTemplate stringRedisTemplate;
+
+    // 引入groupService
+    private final GroupService groupService;
 
     /**
      * 根据用户姓名查询用户信息
@@ -88,6 +92,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 }
                 // 到这里说明用户新增成功，加入到数据库后，我们将其加入到布隆过滤器中
                 userRegisterCachePenetrationBloomFilter.add(userRegisterReqDTO.getUsername());
+                // 为注册的用户创建默认的短链接分组
+                groupService.creat;
                 return;
             }
             // 如果没有获取到锁，说明锁已经被别人使用，那么这个名字就被别人注册掉了

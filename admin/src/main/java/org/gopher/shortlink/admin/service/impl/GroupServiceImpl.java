@@ -24,6 +24,30 @@ import java.util.List;
 @Slf4j
 public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implements GroupService {
     /**
+     * 创建新的短链接分组的重载方法，用于刚刚创建用户时创建默认分组
+     * @param name 分组名称
+     * @param username 当前登录的用户姓名或者创建时候的用户姓名
+     */
+    public void createNewGroup(String username,String name){
+        String gid;
+        do {
+            // 随机生成六位数的gid
+            gid = RandomCodeGenerator.generate6DigitRandomCode();
+        } while (hasGid(username,gid));
+
+        // 创建要插入的实体对象
+        GroupDO groupDO = GroupDO.builder()
+                .gid(gid)
+                .sortOrder(0) // 默认生成的分组排序是0
+                .name(name)
+                .username(username)
+                .build();
+
+        // 插入新的短链接分组对象
+        baseMapper.insert(groupDO);
+    }
+
+    /**
      * 创建新的短链接分组
      */
     @Override
@@ -69,6 +93,18 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
                 .eq(GroupDO::getGid, gid)
                 // todo 获取当前线程的用户
                 .eq(GroupDO::getUsername,UserContext.getUsername());
+        return baseMapper.selectOne(groupDOLambdaQueryWrapper) != null;
+    }
+
+    /**
+     * 判断注册用户名下是否使用过该生成的gid
+     * @return 使用过返回 true ; 没有使用过返回false
+     */
+    public boolean hasGid(String username,String gid){
+        // 判断注册用户名下是否使用过该gid
+        LambdaQueryWrapper<GroupDO> groupDOLambdaQueryWrapper = Wrappers.lambdaQuery(GroupDO.class)
+                .eq(GroupDO::getGid, gid)
+                .eq(GroupDO::getUsername,username);
         return baseMapper.selectOne(groupDOLambdaQueryWrapper) != null;
     }
 

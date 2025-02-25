@@ -19,7 +19,7 @@ public class UserConfiguration {
     public FilterRegistrationBean<UserTransmitFilter> globalUserTransmitFilter(StringRedisTemplate stringRedisTemplate) {
         FilterRegistrationBean<UserTransmitFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new UserTransmitFilter(stringRedisTemplate));
-        registration.addUrlPatterns("/api/short-link/admin/v1/group/*");
+        registration.addUrlPatterns("/*");
         // tip 过滤器执行顺序
         registration.setOrder(0);
         return registration;

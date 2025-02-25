@@ -93,7 +93,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 // 到这里说明用户新增成功，加入到数据库后，我们将其加入到布隆过滤器中
                 userRegisterCachePenetrationBloomFilter.add(userRegisterReqDTO.getUsername());
                 // 为注册的用户创建默认的短链接分组
-                groupService.creat;
+                groupService.createNewGroup(userRegisterReqDTO.getUsername(),"默认分组");
                 return;
             }
             // 如果没有获取到锁，说明锁已经被别人使用，那么这个名字就被别人注册掉了

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.gopher.shortlink.project.dao.entity.ShortLinkDO;
 import org.gopher.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
+import org.gopher.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 
@@ -19,4 +20,9 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
      * 短链接分页展示
      */
     IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO shortLinkPageReqDTO);
+
+    /**
+     * 短链接信息修改
+     */
+    void updateShortLinkInfo(ShortLinkUpdateReqDTO shortLinkUpdateReqDTO);
 }

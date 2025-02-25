@@ -2,6 +2,7 @@ package org.gopher.shortlink.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -11,6 +12,7 @@ import org.gopher.shortlink.project.dao.entity.ShortLinkDO;
 import org.gopher.shortlink.project.dao.mapper.ShortLinkMapper;
 import org.gopher.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
+import org.gopher.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import org.gopher.shortlink.project.service.ShortLinkService;
@@ -91,4 +93,68 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         return resultPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
     }
 
+
+    /**
+     * 短链接信息修改
+     */
+    @Override
+    public void updateShortLinkInfo(ShortLinkUpdateReqDTO shortLinkUpdateReqDTO){
+        // tip : 当前用户可以对某个短链接信息进行修改，说明这个短链接一定是存在的
+
+        // 判断一下是否修改了gid，因为如果修改了gid的话，由于短链接是按照gid进行分表的
+        // 因此加入真的修改了的话，我们就要先删除原表的后插入新表的
+        if(shortLinkUpdateReqDTO.getOriginGid().equals(shortLinkUpdateReqDTO.getGid())){
+            // 如果gid是相等的，说明我们只需要进行更新操作就可以
+            LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
+                    .eq(ShortLinkDO::getGid, shortLinkUpdateReqDTO.getGid())
+                    .eq(ShortLinkDO::getFullShortUrl, shortLinkUpdateReqDTO.getFullShortUrl())
+                    .eq(ShortLinkDO::getDelFlag, 0)
+                    .eq(ShortLinkDO::getEnableStatus, 0);
+            // tip : 创建新的对象
+            ShortLinkDO shortLinkDO = ShortLinkDO.builder()
+                    .gid(shortLinkUpdateReqDTO.getGid())
+                    .describe(shortLinkUpdateReqDTO.getDescribe())
+                    .favicon(shortLinkUpdateReqDTO.getFavicon())
+                    .validDateType(shortLinkUpdateReqDTO.getValidDateType())
+                    .validDate(shortLinkUpdateReqDTO.getValidDateType() == 0 ? null : shortLinkUpdateReqDTO.getValidDate())
+                    .fullShortUrl(shortLinkUpdateReqDTO.getFullShortUrl())
+                    .shortUri(shortLinkUpdateReqDTO.getShortUri())
+                    .originUrl(shortLinkUpdateReqDTO.getOriginUrl())
+                    .build();
+            // 更新对象
+            baseMapper.update(shortLinkDO,updateWrapper);
+        }else{
+            // tip : 说明gid也发生了变化，那么我们就要进行先删除后插入的操作了
+
+            // 首先查询出原始的对象
+            LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                    .eq(ShortLinkDO::getGid, shortLinkUpdateReqDTO.getOriginGid())
+                    .eq(ShortLinkDO::getFullShortUrl, shortLinkUpdateReqDTO.getFullShortUrl())
+                    .eq(ShortLinkDO::getDelFlag, 0)
+                    .eq(ShortLinkDO::getEnableStatus, 0);
+
+            ShortLinkDO originShortLinkDO = baseMapper.selectOne(queryWrapper);
+            // tip : 创建新的对象
+            ShortLinkDO newShortLinkDO = ShortLinkDO.builder()
+                    .domain(originShortLinkDO.getDomain())
+                    .shortUri(shortLinkUpdateReqDTO.getShortUri())
+                    .fullShortUrl(shortLinkUpdateReqDTO.getFullShortUrl())
+                    .originUrl(shortLinkUpdateReqDTO.getOriginUrl())
+                    .clickNum(originShortLinkDO.getClickNum())
+                    .gid(shortLinkUpdateReqDTO.getGid())
+                    .enableStatus(originShortLinkDO.getEnableStatus())
+                    .createdType(originShortLinkDO.getCreatedType())
+                    .describe(shortLinkUpdateReqDTO.getDescribe())
+                    .favicon(shortLinkUpdateReqDTO.getFavicon())
+                    .validDateType(shortLinkUpdateReqDTO.getValidDateType())
+                    .validDate(shortLinkUpdateReqDTO.getValidDateType() == 0 ? null : shortLinkUpdateReqDTO.getValidDate())
+                    .originUrl(shortLinkUpdateReqDTO.getOriginUrl())
+                    .build();
+
+            // 删除原始用户
+            baseMapper.delete(queryWrapper);
+            // 插入新的用户
+            baseMapper.insert(newShortLinkDO);
+        }
+    }
 }

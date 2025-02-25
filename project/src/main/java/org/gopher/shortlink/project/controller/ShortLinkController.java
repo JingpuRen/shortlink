@@ -6,13 +6,11 @@ import org.gopher.shortlink.project.common.convention.result.Result;
 import org.gopher.shortlink.project.common.convention.result.Results;
 import org.gopher.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
+import org.gopher.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import org.gopher.shortlink.project.service.ShortLinkService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 短链接控制层
@@ -40,4 +38,13 @@ public class ShortLinkController {
         return Results.success(shortLinkService.pageShortLink(shortLinkPageReqDTO));
     }
 
+
+    /**
+     * 修改短链接分组中的内容
+     */
+    @PutMapping("/api/short-link/project/v1/update")
+    public Result<String> UpdateShortLinkInfo(@RequestBody ShortLinkUpdateReqDTO shortLinkUpdateReqDTO){
+        shortLinkService.updateShortLinkInfo(shortLinkUpdateReqDTO);
+        return Results.success("短链接信息修改成功");
+    }
 }

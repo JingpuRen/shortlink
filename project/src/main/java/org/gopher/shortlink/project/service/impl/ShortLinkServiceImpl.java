@@ -6,9 +6,15 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.gopher.shortlink.project.common.convention.exception.ServiceException;
 import org.gopher.shortlink.project.dao.entity.ShortLinkDO;
+import org.gopher.shortlink.project.dao.entity.ShortLinkGotoDO;
+import org.gopher.shortlink.project.dao.mapper.ShortLinkGotoMapper;
 import org.gopher.shortlink.project.dao.mapper.ShortLinkMapper;
 import org.gopher.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
@@ -25,33 +31,48 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO>implements ShortLinkService {
 
+    // 引入布隆过滤器
     private final RBloomFilter<String> shortUriCreateCachePenetrationBloomFilter;
+
+    private final ShortLinkGotoMapper shortLinkGotoMapper;
 
     /**
      * 创建短链接
      */
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO shortLinkCreateReqDTO) {
-        // 复制对象属性
+        // 复制对象属性以生成新的实体层对象 tip : domain里面是没有http和https的
         ShortLinkDO shortLinkDO = BeanUtil.toBean(shortLinkCreateReqDTO, ShortLinkDO.class);
         // 生成短链接
         String shortUri = generateSuffix(shortLinkCreateReqDTO);
         shortLinkDO.setShortUri(shortUri);
         shortLinkDO.setEnableStatus(0);
-        // tip 生成完整的短链接 ： 域名 + / + 后缀
-        shortLinkDO.setFullShortUrl(shortLinkCreateReqDTO.getDomain() + "/" + shortUri);
-        // 插入新生成的短链接
+        // tip 生成完整的短链接 ：http:// + 域名 + / + 后缀
+        shortLinkDO.setFullShortUrl("http://" + shortLinkCreateReqDTO.getDomain() + "/" + shortUri);
+
+        // 创建路由表的对象
+        ShortLinkGotoDO shortLinkGotoDO = ShortLinkGotoDO.builder()
+                .gid(shortLinkCreateReqDTO.getGid())
+                .fullShortUrl("http://" + shortLinkCreateReqDTO.getDomain() + "/" + shortUri)
+                .build();
+
+        // 插入新生成的短链接，以及插入对应的路由表
         try{
             baseMapper.insert(shortLinkDO);
+            shortLinkGotoMapper.insert(shortLinkGotoDO);
         }catch (DuplicateKeyException ex){
             // tip 这里主要是对布隆过滤器的误判进行预防，因为如果误判的话，但由于我们有唯一索引，因此数据库会报错的！！
             log.warn("ShortLinkServiceImpl\\createShortLink failed");
             throw new ServiceException("短链接生成重复");
         }
-        // 将新的短链接后缀加入到布隆过滤器中
-        shortUriCreateCachePenetrationBloomFilter.add(shortUri);
+        // 将新的完整短链接加入到布隆过滤器中
+        shortUriCreateCachePenetrationBloomFilter.add(shortLinkCreateReqDTO.getDomain() + "/" + shortUri);
         // 返回结果
-        return BeanUtil.toBean(shortLinkDO, ShortLinkCreateRespDTO.class);
+        return ShortLinkCreateRespDTO.builder()
+                .fullShortUrl(shortLinkDO.getFullShortUrl())
+                .originUrl(shortLinkDO.getOriginUrl())
+                .gid(shortLinkDO.getGid())
+                .build();
     }
 
     /**
@@ -67,8 +88,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             }
             // 生成短链接后缀，加上当前的毫秒数，可以防止每次都生成一样的！！
             shortUri = HashUtil.hashToBase62(shortLinkCreateReqDTO.getOriginUrl() + System.currentTimeMillis());
-            // 检测短链接后缀是否重复生成
-            if(!shortUriCreateCachePenetrationBloomFilter.contains(shortUri)){
+            // 检测完整短链接是否重复生成
+            if(!shortUriCreateCachePenetrationBloomFilter.contains("http://" + shortLinkCreateReqDTO.getDomain() + "/" + shortUri)){
                 // 如果没有重复生成，那么直接break
                 break;
             }
@@ -90,7 +111,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .eq(ShortLinkDO::getEnableStatus, 0);
         // tip 这里的参数传递不太懂，课下多看下mp的分页插件
         IPage<ShortLinkDO> resultPage = baseMapper.selectPage(shortLinkPageReqDTO, queryWrapper);
-        return resultPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
+        return resultPage.convert(each -> {
+            ShortLinkPageRespDTO result = BeanUtil.toBean(each, ShortLinkPageRespDTO.class);
+            result.setDomain("http://" + result.getDomain());
+            return result;
+        });
     }
 
 
@@ -155,6 +180,36 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             baseMapper.delete(queryWrapper);
             // 插入新的用户
             baseMapper.insert(newShortLinkDO);
+        }
+    }
+
+    /**
+     * 短链接跳转
+     * @param shortUri 短链接后缀
+     * @param request 请求
+     * @param response 响应
+     */
+    @SneakyThrows
+    @Override
+    public void restoreUrl(String shortUri, ServletRequest request, ServletResponse response) {
+        String serverName = request.getServerName();
+        String fullShortUrl = "http://" + serverName + "/" + shortUri;
+
+        // tip : 查询该url对应的gid
+        LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
+        ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
+
+        LambdaQueryWrapper<ShortLinkDO> wrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid())
+                .eq(ShortLinkDO::getFullShortUrl, fullShortUrl)
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .eq(ShortLinkDO::getEnableStatus, 0);
+        ShortLinkDO shortLinkDO = baseMapper.selectOne(wrapper);
+
+        if(shortLinkDO != null){
+            // tip : 进行短链接跳转
+            ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
         }
     }
 }

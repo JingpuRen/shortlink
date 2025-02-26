@@ -1,6 +1,8 @@
 package org.gopher.shortlink.project.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.gopher.shortlink.project.common.convention.result.Result;
 import org.gopher.shortlink.project.common.convention.result.Results;
@@ -47,4 +49,13 @@ public class ShortLinkController {
         shortLinkService.updateShortLinkInfo(shortLinkUpdateReqDTO);
         return Results.success("短链接信息修改成功");
     }
+
+    /**
+     * 短链接跳转
+     */
+    @GetMapping("/{short-uti}")
+    public void RestoreUrl (@PathVariable("short-uti") String shortUri, ServletRequest request, ServletResponse response){
+        shortLinkService.restoreUrl(shortUri,request,response);
+    }
+
 }

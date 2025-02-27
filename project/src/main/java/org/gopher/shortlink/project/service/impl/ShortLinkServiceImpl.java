@@ -80,7 +80,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             throw new ServiceException("短链接生成重复");
         }
         // 将新的完整短链接加入到布隆过滤器中
-        shortUriCreateCachePenetrationBloomFilter.add(shortLinkCreateReqDTO.getDomain() + "/" + shortUri);
+        shortUriCreateCachePenetrationBloomFilter.add("http://" + shortLinkCreateReqDTO.getDomain() + "/" + shortUri);
         // 返回结果
         return ShortLinkCreateRespDTO.builder()
                 .fullShortUrl(shortLinkDO.getFullShortUrl())
@@ -273,6 +273,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl,shortLinkDO.getOriginUrl(),getLinkCacheValidDate(shortLinkDO.getValidDate()),TimeUnit.MILLISECONDS);
                 // tip : 进行短链接跳转
                 ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
+            }else{
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
             }
         }finally {
             // 释放锁

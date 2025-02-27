@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.gopher.shortlink.project.common.constant.RedisKeyConstant;
 import org.gopher.shortlink.project.dao.entity.ShortLinkDO;
 import org.gopher.shortlink.project.dao.mapper.ShortLinkMapper;
+import org.gopher.shortlink.project.dto.req.RecycleBinRecoverReqDTO;
+import org.gopher.shortlink.project.dto.req.RecycleBinRemoveReqDTO;
 import org.gopher.shortlink.project.dto.req.RecycleBinSaveReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
@@ -59,4 +61,35 @@ public class RecycleBinServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLin
         });
     }
 
+    /**
+     * 恢复短链接
+     */
+    @Override
+    public void recoverShortLink(RecycleBinRecoverReqDTO recycleBinRecoverReqDTO) {
+        LambdaUpdateWrapper<ShortLinkDO> updateWrapper = Wrappers.lambdaUpdate(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, recycleBinRecoverReqDTO.getGid())
+                .eq(ShortLinkDO::getFullShortUrl, recycleBinRecoverReqDTO.getFullShortUrl())
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .eq(ShortLinkDO::getEnableStatus, 1);
+        ShortLinkDO shortLinkDO = ShortLinkDO.builder()
+                .enableStatus(0)
+                .build();
+        baseMapper.update(shortLinkDO,updateWrapper);
+        // todo : 从缓存中删除缓存的空值，这里我持有怀疑的态度，这里删除是因为缓存中可能是存在其空值
+        // todo : 因此我觉得应该先判定有没有空值，然后再删除
+    }
+
+    /**
+     * 从回收站中移除短链接
+     */
+    @Override
+    public void removeShortLinkFromRecycleBin(RecycleBinRemoveReqDTO recycleBinRemoveReqDTO) {
+        LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                .eq(ShortLinkDO::getGid, recycleBinRemoveReqDTO.getGid())
+                .eq(ShortLinkDO::getFullShortUrl, recycleBinRemoveReqDTO.getFullShortUrl())
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .eq(ShortLinkDO::getEnableStatus, 1);
+        // 这里的删除就是将我们的delFlag字段置为1
+        baseMapper.delete(queryWrapper);
+    }
 }

@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import org.gopher.shortlink.project.common.convention.result.Result;
 import org.gopher.shortlink.project.common.convention.result.Results;
+import org.gopher.shortlink.project.dto.req.RecycleBinRecoverReqDTO;
+import org.gopher.shortlink.project.dto.req.RecycleBinRemoveReqDTO;
 import org.gopher.shortlink.project.dto.req.RecycleBinSaveReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
@@ -40,4 +42,21 @@ public class RecycleBinController {
     }
 
 
+    /**
+     * 从回收站还原短链接
+     */
+    @PostMapping("/api/short-link/recycle/v1/recover")
+    public Result<String> RecoverShortLink(@RequestBody RecycleBinRecoverReqDTO recycleBinRecoverReqDTO){
+        recycleBinService.recoverShortLink(recycleBinRecoverReqDTO);
+        return Results.success("短链接还原成功");
+    }
+
+    /**
+     * 从回收站移除短链接
+     */
+    @PostMapping("/api/short-link/recycle/v1/remove")
+    public Result<String> RemoveShortLinkFromRecycleBin(@RequestBody RecycleBinRemoveReqDTO recycleBinRemoveReqDTO){
+        recycleBinService.removeShortLinkFromRecycleBin(recycleBinRemoveReqDTO);
+        return Results.success("从回收站移除短链接成功");
+    }
 }

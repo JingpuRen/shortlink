@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.gopher.shortlink.admin.common.convention.result.Result;
+import org.gopher.shortlink.admin.remote.dto.req.RecycleBinSaveReqDTO;
 import org.gopher.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
 import org.gopher.shortlink.admin.remote.dto.req.ShortLinkUpdateReqDTO;
@@ -48,5 +49,12 @@ public interface ShortLinkRemoteService {
      */
     default void updateShortLinkInfo(ShortLinkUpdateReqDTO shortLinkUpdateReqDTO){
         String post = HttpUtil.post("http://127.0.0.1:8001/api/short-link/project/v1/update", JSON.toJSONString(shortLinkUpdateReqDTO));
+    }
+
+    /**
+     * 将短链接移到回收站
+     */
+    default void saveRecycleBin(RecycleBinSaveReqDTO recycleBinSaveReqDTO) {
+        HttpUtil.post("http://127.0.0.1:8001/api/short-link/recycle/v1/save", JSON.toJSONString(recycleBinSaveReqDTO));
     }
 }

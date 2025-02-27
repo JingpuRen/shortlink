@@ -57,5 +57,4 @@ public class ShortLinkController {
     public void RestoreUrl (@PathVariable("short-uti") String shortUri, ServletRequest request, ServletResponse response){
         shortLinkService.restoreUrl(shortUri,request,response);
     }
-
 }

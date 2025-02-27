@@ -32,6 +32,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
 @RequiredArgsConstructor
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO>implements ShortLinkService {
@@ -206,6 +208,20 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ((HttpServletResponse) response).sendRedirect(originLink);
             return;
         }
+
+        // tip : 检查布隆过滤器中是否存在
+        if(!shortUriCreateCachePenetrationBloomFilter.contains(fullShortUrl)){
+            // 如果布隆过滤其中不存在的话，那说明数据库里面肯定也是没有的，因此直接return
+            return;
+        }
+
+        // tip : 存在则继续往下走
+        String gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
+        if(StrUtil.isNotBlank(gotoIsNullShortLink)){
+            return;
+        }
+
+
         // tip : 当为空的时候，说明可能出现了Key过期的情况，因此就出现了缓存击穿的问题，要加上分布式锁
         // tip : 定义锁
         RLock lock = redissonClient.getLock(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY + fullShortUrl);
@@ -223,6 +239,12 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
                     .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
             ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
+            if(shortLinkGotoDO == null){
+                // 说明数据库中不存在
+                stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl,"-",30, TimeUnit.MINUTES);
+                return;
+            }
+
             LambdaQueryWrapper<ShortLinkDO> wrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
                     .eq(ShortLinkDO::getGid, shortLinkGotoDO.getGid())
                     .eq(ShortLinkDO::getFullShortUrl, fullShortUrl)

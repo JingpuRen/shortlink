@@ -228,7 +228,6 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             return;
         }
 
-
         // tip : 当为空的时候，说明可能出现了Key过期的情况，因此就出现了缓存击穿的问题，要加上分布式锁
         // tip : 定义锁
         RLock lock = redissonClient.getLock(RedisKeyConstant.LOCK_GOTO_SHORT_LINK_KEY + fullShortUrl);

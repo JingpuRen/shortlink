@@ -12,7 +12,6 @@ public class ShortLinkNotFoundController {
 
     /**
      * 短链接不存在的跳转页面
-     * @return
      */
     @RequestMapping("/page/notfound")
     public String notfound() {

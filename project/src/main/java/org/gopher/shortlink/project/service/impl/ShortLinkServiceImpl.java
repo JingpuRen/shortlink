@@ -32,6 +32,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import static org.gopher.shortlink.project.util.LinkUtil.getLinkCacheValidDate;
@@ -254,6 +255,13 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .eq(ShortLinkDO::getEnableStatus, 0);
             ShortLinkDO shortLinkDO = baseMapper.selectOne(wrapper);
             if(shortLinkDO != null){
+                // 判断当前的短链接是不是已经过期了
+                if(shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(new Date())){
+                    // 过期了和数据库中不存在应当是一个待遇的，我们都应该给缓存中设置空值
+                    stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl,"-",30, TimeUnit.MINUTES);
+                    return;
+                }
+
                 // tip 将数据加载到缓存中
                 stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl,shortLinkDO.getOriginUrl(),getLinkCacheValidDate(shortLinkDO.getValidDate()),TimeUnit.MILLISECONDS);
                 // tip : 进行短链接跳转

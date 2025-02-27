@@ -214,6 +214,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
         // tip : 检查布隆过滤器中是否存在
         if(!shortUriCreateCachePenetrationBloomFilter.contains(fullShortUrl)){
+            // tip : 重定向到空的页面
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
             // 如果布隆过滤其中不存在的话，那说明数据库里面肯定也是没有的，因此直接return
             return;
         }
@@ -221,6 +223,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         // tip : 存在则继续往下走
         String gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl);
         if(StrUtil.isNotBlank(gotoIsNullShortLink)){
+            // tip : 重定向到空的页面
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
 
@@ -245,6 +249,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             if(shortLinkGotoDO == null){
                 // 说明数据库中不存在
                 stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl,"-",30, TimeUnit.MINUTES);
+                // tip : 重定向到空的页面
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
                 return;
             }
 
@@ -259,6 +265,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 if(shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(new Date())){
                     // 过期了和数据库中不存在应当是一个待遇的，我们都应该给缓存中设置空值
                     stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY + fullShortUrl,"-",30, TimeUnit.MINUTES);
+                    // tip : 重定向到空的页面
+                    ((HttpServletResponse) response).sendRedirect("/page/notfound");
                     return;
                 }
 

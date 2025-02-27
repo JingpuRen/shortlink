@@ -77,3 +77,5 @@ CREATE TABLE `link`.`t_link_access_stats`  (
     `del_flag` tinyint(1) NULL DEFAULT NULL COMMENT '删除标识：0 未删除 1 已删除',
     PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+ALTER TABLE t_link_access_stats ADD UNIQUE INDEX idx_unique_access_stats (full_short_url, gid, weekday, hour);

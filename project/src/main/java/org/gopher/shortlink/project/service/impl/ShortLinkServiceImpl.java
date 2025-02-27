@@ -34,6 +34,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.gopher.shortlink.project.util.LinkUtil.getLinkCacheValidDate;
+
 @Service
 @RequiredArgsConstructor
 public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLinkDO>implements ShortLinkService {
@@ -253,7 +255,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ShortLinkDO shortLinkDO = baseMapper.selectOne(wrapper);
             if(shortLinkDO != null){
                 // tip 将数据加载到缓存中
-                stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl,shortLinkDO.getOriginUrl());
+                stringRedisTemplate.opsForValue().set(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl,shortLinkDO.getOriginUrl(),getLinkCacheValidDate(shortLinkDO.getValidDate()),TimeUnit.MILLISECONDS);
                 // tip : 进行短链接跳转
                 ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
             }

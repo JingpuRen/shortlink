@@ -344,9 +344,11 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
             gid = shortLinkDO.getGid();
         }
-
         int hour = DateUtil.hour(new Date(), true);
         int weekday = DateUtil.dayOfWeekEnum(new Date()).getIso8601Value();
+
+
+        // 数据库更新pv/uv/uid等
         LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
                 .gid(gid)
                 .pv(1)

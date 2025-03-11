@@ -308,6 +308,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
      */
     public void shortLinkStats(String fullShortUrl, String gid, String fullShortUrlWithoutPre,ServletRequest request, ServletResponse response){
         // tip : uv统计
+        // todo : 这里不懂为什么要用原子类的布尔，后续要再看看
         AtomicBoolean uvExistFlag = new AtomicBoolean();
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
         Runnable addCookie = ()->{

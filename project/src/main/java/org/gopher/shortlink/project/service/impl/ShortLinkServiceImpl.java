@@ -2,6 +2,8 @@ package org.gopher.shortlink.project.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -10,6 +12,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -35,9 +39,13 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.gopher.shortlink.project.common.constant.RedisKeyConstant.UV_StORE_KEY;
 import static org.gopher.shortlink.project.util.LinkUtil.getLinkCacheValidDate;
 
 @Service
@@ -209,12 +217,13 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     @Override
     public void restoreUrl(String shortUri, ServletRequest request, ServletResponse response) {
         String serverName = request.getServerName();
+        String fullShortUrlWithoutPre = "/" + shortUri;
         String fullShortUrl = "http://" + serverName + "/" + shortUri;
         // tip : 从Redis中获取短链接，如果能够获取到，则可以直接跳转
         String originLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl);
         if(StrUtil.isNotBlank(originLink)){
             // 统计pv
-            shortLinkStats(fullShortUrl,null,request,response);
+            shortLinkStats(fullShortUrl,null,fullShortUrlWithoutPre,request,response);
             ((HttpServletResponse) response).sendRedirect(originLink);
             return;
         }
@@ -244,7 +253,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             originLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl);
             // tip : 如果不为空的话，那么就说明Key还没有过期
             if(StrUtil.isNotBlank(originLink)){
-                shortLinkStats(fullShortUrl,null,request,response);
+                shortLinkStats(fullShortUrl,null,fullShortUrlWithoutPre,request,response);
                 ((HttpServletResponse) response).sendRedirect(originLink);
                 return;
             }
@@ -283,7 +292,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                         getLinkCacheValidDate(shortLinkDO.getValidDate()),
                         TimeUnit.MILLISECONDS);
                 // tip : 进行短链接跳转 + pv统计
-                shortLinkStats(fullShortUrl,shortLinkDO.getGid(),request,response);
+                shortLinkStats(fullShortUrl,shortLinkDO.getGid(),fullShortUrlWithoutPre,request,response);
                 ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
             }else{
                 ((HttpServletResponse) response).sendRedirect("/page/notfound");
@@ -297,7 +306,37 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     /**
      * 短链接统计
      */
-    public void shortLinkStats(String fullShortUrl, String gid, ServletRequest request, ServletResponse response){
+    public void shortLinkStats(String fullShortUrl, String gid, String fullShortUrlWithoutPre,ServletRequest request, ServletResponse response){
+        // tip : uv统计
+        AtomicBoolean uvExistFlag = new AtomicBoolean();
+        Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+        Runnable addCookie = ()->{
+            String uv = UUID.fastUUID().toString();
+            Cookie uvCookie = new Cookie("uv", uv);
+            uvCookie.setMaxAge(60 * 60 * 24 * 30);
+            // tip : Cookie的Path属性决定了哪些路径下的页面可以访问该Cookie
+            uvCookie.setPath(StrUtil.sub(fullShortUrl,fullShortUrlWithoutPre.indexOf("/"),fullShortUrl.length()));
+            ((HttpServletResponse)response).addCookie(uvCookie);
+            // tip : 新增Cookie，一定要将存在的标志设置为true
+            uvExistFlag.set(Boolean.TRUE);
+        };
+        // 如果Cookie不是空
+        if(ArrayUtil.isNotEmpty(cookies)){
+            Arrays.stream(cookies)
+                    .filter(each -> Objects.equals(each.getName(),"uv"))
+                    .findFirst()
+                    .map(Cookie::getValue)
+                    .ifPresentOrElse(item->{
+                        // 如果Cookie中存在uv字段，那么检查是否在存储在redis中
+                        Long added = stringRedisTemplate.opsForSet().add(UV_StORE_KEY + fullShortUrl, item);
+                        uvExistFlag.set(added != null && added > 0L);
+                    },addCookie);
+        }else{
+            // 如果Cookie是空的，也说明是第一次访问
+            addCookie.run();
+        }
+
+        // tip : pv统计
         if(StrUtil.isBlank(gid)){
             LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
                     .eq(ShortLinkDO::getFullShortUrl, fullShortUrl);
@@ -310,7 +349,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
                 .gid(gid)
                 .pv(1)
-                .uv(1)
+                .uv(uvExistFlag.get() ? 1 : 0)
                 .uip(1)
                 .fullShortUrl(fullShortUrl)
                 .date(new Date())

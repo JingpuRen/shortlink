@@ -214,7 +214,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         String originLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl);
         if(StrUtil.isNotBlank(originLink)){
             // 统计pv
-            shortLinkPvStats(fullShortUrl,null,request,response);
+            shortLinkStats(fullShortUrl,null,request,response);
             ((HttpServletResponse) response).sendRedirect(originLink);
             return;
         }
@@ -244,7 +244,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
             originLink = stringRedisTemplate.opsForValue().get(RedisKeyConstant.GOTO_SHORT_LINK_KEY + fullShortUrl);
             // tip : 如果不为空的话，那么就说明Key还没有过期
             if(StrUtil.isNotBlank(originLink)){
-                shortLinkPvStats(fullShortUrl,null,request,response);
+                shortLinkStats(fullShortUrl,null,request,response);
                 ((HttpServletResponse) response).sendRedirect(originLink);
                 return;
             }
@@ -283,7 +283,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                         getLinkCacheValidDate(shortLinkDO.getValidDate()),
                         TimeUnit.MILLISECONDS);
                 // tip : 进行短链接跳转 + pv统计
-                shortLinkPvStats(fullShortUrl,shortLinkDO.getGid(),request,response);
+                shortLinkStats(fullShortUrl,shortLinkDO.getGid(),request,response);
                 ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
             }else{
                 ((HttpServletResponse) response).sendRedirect("/page/notfound");
@@ -295,9 +295,9 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     }
 
     /**
-     * 短链接pv统计
+     * 短链接统计
      */
-    public void shortLinkPvStats(String fullShortUrl, String gid, ServletRequest request, ServletResponse response){
+    public void shortLinkStats(String fullShortUrl, String gid, ServletRequest request, ServletResponse response){
         if(StrUtil.isBlank(gid)){
             LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
                     .eq(ShortLinkDO::getFullShortUrl, fullShortUrl);
@@ -317,6 +317,6 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .hour(hour)
                 .weekday(weekday)
                 .build();
-        linkAccessStatsMapper.shortLinkPvStats(linkAccessStatsDO);
+        linkAccessStatsMapper.shortLinkStats(linkAccessStatsDO);
     }
 }

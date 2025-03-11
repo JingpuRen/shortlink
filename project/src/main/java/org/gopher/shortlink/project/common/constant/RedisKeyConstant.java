@@ -23,4 +23,9 @@ public class RedisKeyConstant {
      * 短链接uv存储前缀 Key
      */
     public static final String UV_StORE_KEY = "short-link:uv:store:";
+
+    /**
+     * 短链接uip存储前缀 Key
+     */
+    public static final String UIP_STORE_KEY = "short-link:uip:store:";
 }

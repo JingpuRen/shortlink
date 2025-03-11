@@ -32,6 +32,7 @@ import org.gopher.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import org.gopher.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import org.gopher.shortlink.project.service.ShortLinkService;
 import org.gopher.shortlink.project.util.HashUtil;
+import org.gopher.shortlink.project.util.LinkUtil;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -45,6 +46,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.gopher.shortlink.project.common.constant.RedisKeyConstant.UIP_STORE_KEY;
 import static org.gopher.shortlink.project.common.constant.RedisKeyConstant.UV_StORE_KEY;
 import static org.gopher.shortlink.project.util.LinkUtil.getLinkCacheValidDate;
 
@@ -329,13 +331,19 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .map(Cookie::getValue)
                     .ifPresentOrElse(item->{
                         // 如果Cookie中存在uv字段，那么检查是否在存储在redis中
-                        Long added = stringRedisTemplate.opsForSet().add(UV_StORE_KEY + fullShortUrl, item);
-                        uvExistFlag.set(added != null && added > 0L);
+                        Long uvAdded = stringRedisTemplate.opsForSet().add(UV_StORE_KEY + fullShortUrl, item);
+                        // 如果uvAdded大于0，表示元素成功添加到集合中
+                        uvExistFlag.set(uvAdded != null && uvAdded > 0L);
                     },addCookie);
         }else{
             // 如果Cookie是空的，也说明是第一次访问
             addCookie.run();
         }
+
+        // tip : uip统计
+        String actualIp = LinkUtil.getActualIp((HttpServletRequest) request);
+        Long uipAdded = stringRedisTemplate.opsForSet().add(UIP_STORE_KEY + fullShortUrl, actualIp);
+        boolean uipExistFlag = uipAdded != null && uipAdded > 0L;
 
         // tip : pv统计
         if(StrUtil.isBlank(gid)){
@@ -353,7 +361,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .gid(gid)
                 .pv(1)
                 .uv(uvExistFlag.get() ? 1 : 0)
-                .uip(1)
+                .uip(uipExistFlag ? 1 : 0)
                 .fullShortUrl(fullShortUrl)
                 .date(new Date())
                 .hour(hour)

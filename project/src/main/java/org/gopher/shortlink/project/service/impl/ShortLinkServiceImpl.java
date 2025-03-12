@@ -73,6 +73,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     private final LinkBrowserStatsMapper linkBrowserStatsMapper;
 
+    private final LinkDeviceStatsMapper linkDeviceStatsMapper;
+
     /**
      * 创建短链接
      */
@@ -420,5 +422,15 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .date(new Date())
                 .build();
         linkBrowserStatsMapper.shortLinkBrowserState(linkBrowserStatsDO);
+
+        // 统计访问设备类型
+        LinkDeviceStatsDO linkDeviceStatsDO = LinkDeviceStatsDO.builder()
+                .device(LinkUtil.getDevice(((HttpServletRequest) request)))
+                .cnt(1)
+                .gid(gid)
+                .fullShortUrl(fullShortUrl)
+                .date(new Date())
+                .build();
+        linkDeviceStatsMapper.shortLinkDeviceState(linkDeviceStatsDO);
     }
 }

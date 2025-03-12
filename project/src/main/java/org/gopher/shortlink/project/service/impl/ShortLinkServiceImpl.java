@@ -22,14 +22,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.gopher.shortlink.project.common.constant.RedisKeyConstant;
 import org.gopher.shortlink.project.common.convention.exception.ServiceException;
-import org.gopher.shortlink.project.dao.entity.LinkAccessStatsDO;
-import org.gopher.shortlink.project.dao.entity.LinkLocaleStatsDO;
-import org.gopher.shortlink.project.dao.entity.ShortLinkDO;
-import org.gopher.shortlink.project.dao.entity.ShortLinkGotoDO;
-import org.gopher.shortlink.project.dao.mapper.LinkAccessStatsMapper;
-import org.gopher.shortlink.project.dao.mapper.LinkLocaleStatsMapper;
-import org.gopher.shortlink.project.dao.mapper.ShortLinkGotoMapper;
-import org.gopher.shortlink.project.dao.mapper.ShortLinkMapper;
+import org.gopher.shortlink.project.dao.entity.*;
+import org.gopher.shortlink.project.dao.mapper.*;
 import org.gopher.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import org.gopher.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
@@ -74,6 +68,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     @Value("${short-link.stats.locale.amap-key}")
     private String shortLinkStatsAmapKey;
+
+    public final LinkOsStatsMapper linkOsStatsMapper;
 
     /**
      * 创建短链接
@@ -399,7 +395,18 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .adcode(unknownFlag ? "未知" : localeResultObj.getString("adcode"))
                     .country("中国")
                     .build();
-            linkLocaleStatsMapper.insert(linkLocaleStatsDO);
+            linkLocaleStatsMapper.shortLinkLocaleStats(linkLocaleStatsDO);
         }
+
+        // 统计来访操作系统
+        String os = LinkUtil.getOs((HttpServletRequest) request);
+        LinkOsStatsDO linkOsStatsDO = LinkOsStatsDO.builder()
+                .fullShortUrl(fullShortUrl)
+                .gid(gid)
+                .date(new Date())
+                .cnt(1)
+                .os(os)
+                .build();
+        linkOsStatsMapper.shortLinkOsStats(linkOsStatsDO);
     }
 }

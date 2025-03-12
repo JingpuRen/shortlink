@@ -75,6 +75,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
 
     private final LinkDeviceStatsMapper linkDeviceStatsMapper;
 
+    private final LinkNetworkStatsMapper linkNetworkStatsMapper;
+
     /**
      * 创建短链接
      */
@@ -432,5 +434,15 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .date(new Date())
                 .build();
         linkDeviceStatsMapper.shortLinkDeviceState(linkDeviceStatsDO);
+
+        // 统计短链接访问网络类型
+        LinkNetworkStatsDO linkNetworkStatsDO = LinkNetworkStatsDO.builder()
+                .network(LinkUtil.getNetwork(((HttpServletRequest) request)))
+                .cnt(1)
+                .gid(gid)
+                .fullShortUrl(fullShortUrl)
+                .date(new Date())
+                .build();
+        linkNetworkStatsMapper.shortLinkNetworkState(linkNetworkStatsDO);
     }
 }

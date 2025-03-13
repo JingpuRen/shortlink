@@ -43,6 +43,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.gopher.shortlink.project.common.constant.RedisKeyConstant.UIP_STORE_KEY;
 import static org.gopher.shortlink.project.common.constant.RedisKeyConstant.UV_StORE_KEY;
@@ -76,6 +77,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final LinkDeviceStatsMapper linkDeviceStatsMapper;
 
     private final LinkNetworkStatsMapper linkNetworkStatsMapper;
+
+    private final LinkAccessLogsMapper linkAccessLogsMapper;
 
     /**
      * 创建短链接
@@ -324,15 +327,17 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         // todo : 这里不懂为什么要用原子类的布尔，后续要再看看
         AtomicBoolean uvExistFlag = new AtomicBoolean();
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+        AtomicReference<String> uv = new AtomicReference<>();
         Runnable addCookie = ()->{
-            String uv = UUID.fastUUID().toString();
-            Cookie uvCookie = new Cookie("uv", uv);
+            uv.set(UUID.fastUUID().toString());
+            Cookie uvCookie = new Cookie("uv", uv.get());
             uvCookie.setMaxAge(60 * 60 * 24 * 30);
             // tip : Cookie的Path属性决定了哪些路径下的页面可以访问该Cookie
             uvCookie.setPath(StrUtil.sub(fullShortUrl,fullShortUrlWithoutPre.indexOf("/"),fullShortUrl.length()));
             ((HttpServletResponse)response).addCookie(uvCookie);
             // tip : 新增Cookie，一定要将存在的标志设置为true
             uvExistFlag.set(Boolean.TRUE);
+            stringRedisTemplate.opsForSet().add(UV_StORE_KEY + fullShortUrl, uv.get());
         };
         // 如果Cookie不是空
         if(ArrayUtil.isNotEmpty(cookies)){
@@ -341,6 +346,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                     .findFirst()
                     .map(Cookie::getValue)
                     .ifPresentOrElse(item->{
+                        uv.set(item);
                         // 如果Cookie中存在uv字段，那么检查是否在存储在redis中
                         Long uvAdded = stringRedisTemplate.opsForSet().add(UV_StORE_KEY + fullShortUrl, item);
                         // 如果uvAdded大于0，表示元素成功添加到集合中
@@ -424,6 +430,17 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .date(new Date())
                 .build();
         linkBrowserStatsMapper.shortLinkBrowserState(linkBrowserStatsDO);
+
+        // 统计短链接高频访问ip
+        LinkAccessLogsDO linkAccessLogsDO = LinkAccessLogsDO.builder()
+                .ip(actualIp)
+                .fullShortUrl(fullShortUrl)
+                .gid(gid)
+                .browser(LinkUtil.getBrowser(((HttpServletRequest) request)))
+                .os(os)
+                .user(uv.get())
+                .build();
+        linkAccessLogsMapper.insert(linkAccessLogsDO);
 
         // 统计访问设备类型
         LinkDeviceStatsDO linkDeviceStatsDO = LinkDeviceStatsDO.builder()
